@@ -1,0 +1,4 @@
+renv/
+.Rprofile
+renv.lock
+data/
