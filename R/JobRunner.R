@@ -29,7 +29,6 @@ JobRunner <- R6::R6Class("JobRunner",
       AudioProcessor <- IndexCalculator::AudioProcessor
       IndexCalculator <- IndexCalculator::IndexCalculator
       Logger <- IndexCalculator::Logger
-      # params_indices <- IndexCalculator::params_indices
 
       future::plan(future::multisession)
 
