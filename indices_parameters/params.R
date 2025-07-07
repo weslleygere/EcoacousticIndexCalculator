@@ -1,4 +1,4 @@
-params_indices <- list(
+params <- list(
 
   ACI = list(
     min_freq = 0,

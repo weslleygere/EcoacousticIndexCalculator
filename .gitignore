@@ -1,4 +1,11 @@
-renv/
-.Rprofile
-renv.lock
+# RStudio and user-specific files
+.Rproj.user/
+.Rhistory
+.RData
+
+# renv (keep lockfile and activate.R, ignore only local paths)
+renv/library/
+renv/staging/
+
+# Data and outputs (optional, adjust as needed)
 data/
