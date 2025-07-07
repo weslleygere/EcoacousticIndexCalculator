@@ -1,4 +1,4 @@
-# 🎧 Acoustic Indices Calculator
+# 🎧 Ecoacoustic Indices Calculator
 
 An efficient, modular, and HPC-ready R project for computing ecoacoustic indices from stereo `.wav` files — ideal for soundscape analysis in ecological research.
 
