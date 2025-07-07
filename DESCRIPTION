@@ -1,11 +1,16 @@
 Package: IndexCalculator
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Acoustic Indices Computation for Ecoacoustic Analysis
+Version: 0.0.1
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Weslley", "Geremias dos Santos", 
+           email = "weslleygeremias@gmail.com", 
+           role = c("aut", "cre"))
+Description: Provides a modular and efficient pipeline for computing acoustic 
+    indices from stereo WAV files, designed for ecological soundscape analysis.
+    Supports batch processing, parallel execution, runtime logging, and outputs
+    in parquet format. Integrates functionality from 'soundecology', 'seewave',
+    and related packages.
+License: Free
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
