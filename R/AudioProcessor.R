@@ -34,11 +34,7 @@ AudioProcessor <- R6::R6Class("AudioProcessor",
       private$wav <- tryCatch(
         tuneR::readWave(private$filepath),
         error = function(e) {
-          if (!is.null(private$logger)) {
-            private$logger$error(
-              paste("Failed to read", private$filepath, "->", e$message)
-            )
-          }
+          private$logger$error(paste("Failed to read", private$filepath, "->", e$message))
           NULL
         }
       )
