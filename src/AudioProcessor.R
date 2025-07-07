@@ -6,7 +6,6 @@
 #' @field filepath Path to the audio file (.wav)
 #' @field wav Internal slot to store the wave object (tuneR::Wave)
 #' @field logger Optional logger object (log4r-style) to report errors
-#' @export
 AudioProcessor <- R6::R6Class("AudioProcessor",
   private = list(
     filepath = NULL,
@@ -16,7 +15,7 @@ AudioProcessor <- R6::R6Class("AudioProcessor",
 
   public = list(
 
-    #' @description Initialize AudioProcessor
+    #' Initialize AudioProcessor
     #'
     #' @param filepath Path to the WAV file
     #' @param logger Optional logger object for logging errors

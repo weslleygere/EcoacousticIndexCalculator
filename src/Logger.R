@@ -4,7 +4,6 @@
 #' It supports INFO, WARN, and ERROR levels, and automatically creates log directories if needed.
 #'
 #' @field logger Internal log4r logger object
-#' @export
 Logger <- R6::R6Class("Logger",
   private = list(
     logger = NULL
@@ -12,7 +11,7 @@ Logger <- R6::R6Class("Logger",
 
   public = list(
 
-    #' @description Initialize a new Logger
+    #' Initialize a new Logger
     #'
     #' @param logfile Path to the log file (default: "log.txt")
     #' @param level Logging level (default: "INFO")

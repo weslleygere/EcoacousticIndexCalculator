@@ -6,7 +6,6 @@
 #' @field filename Path of the WAV file
 #' @field wav A `tuneR::Wave` object
 #' @field logger Optional logger object for error reporting
-#' @export
 IndexCalculator <- R6::R6Class("IndexCalculator",
   private = list(
     filename = NULL,
@@ -29,7 +28,7 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
 
   public = list(
 
-    #' @description Constructor
+    #' Constructor
     #' @param filename File path of the original audio
     #' @param wav The wave object (tuneR::Wave)
     #' @param logger Optional logger for error reporting
@@ -99,18 +98,21 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
     aci = function() {
       tryCatch({
         params <- params$ACI
-        res <- soundecology::acoustic_complexity(
-          private$wav,
-          min_freq = params$min_freq,
-          max_freq = params$max_freq,
-          fft_w    = params$fft_w,
-          j        = params$j
-        )
+        # Suppress verbose output from soundecology
+        res <- capture.output({
+          result <- soundecology::acoustic_complexity(
+            private$wav,
+            min_freq = params$min_freq,
+            max_freq = params$max_freq,
+            fft_w    = params$fft_w,
+            j        = params$j
+          )
+        }, type = "output")
         list(
-          ACI_E = res$AciTotAll_left,
-          ACI_D = res$AciTotAll_right,
-          ACI_bymin_E = res$AciTotAll_left_bymin,
-          ACI_bymin_D = res$AciTotAll_right_bymin
+          ACI_E = result$AciTotAll_left,
+          ACI_D = result$AciTotAll_right,
+          ACI_bymin_E = result$AciTotAll_left_bymin,
+          ACI_bymin_D = result$AciTotAll_right_bymin
         )
       }, error = function(e) {
         private$logger$error(paste("Failed to compute ACI for", private$filename, "->", e$message))
@@ -122,15 +124,18 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
     ndsi = function() {
       tryCatch({
         params <- params$NDSI
-        res <- soundecology::ndsi(
-          private$wav,
-          anthro_min = params$anthro_min,
-          anthro_max = params$anthro_max,
-          bio_min    = params$bio_min,
-          bio_max    = params$bio_max,
-          fft_w      = params$fft_w
-        )
-        list(ndsi_E = res$ndsi_left, ndsi_D = res$ndsi_right)
+        # Suppress verbose output from soundecology
+        res <- capture.output({
+          result <- soundecology::ndsi(
+            private$wav,
+            anthro_min = params$anthro_min,
+            anthro_max = params$anthro_max,
+            bio_min    = params$bio_min,
+            bio_max    = params$bio_max,
+            fft_w      = params$fft_w
+          )
+        }, type = "output")
+        list(ndsi_E = result$ndsi_left, ndsi_D = result$ndsi_right)
       }, error = function(e) {
         private$logger$error(paste("Failed to compute NDSI for", private$filename, "->", e$message))
         list(ndsi_E = NA, ndsi_D = NA)
@@ -141,13 +146,16 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
     bio = function() {
       tryCatch({
         params <- params$BIO
-        res <- soundecology::bioacoustic_index(
-          private$wav,
-          min_freq = params$min_freq,
-          max_freq = params$max_freq,
-          fft_w    = params$fft_w
-        )
-        list(bio_E = res$left_area, bio_D = res$right_area)
+        # Suppress verbose output from soundecology
+        res <- capture.output({
+          result <- soundecology::bioacoustic_index(
+            private$wav,
+            min_freq = params$min_freq,
+            max_freq = params$max_freq,
+            fft_w    = params$fft_w
+          )
+        }, type = "output")
+        list(bio_E = result$left_area, bio_D = result$right_area)
       }, error = function(e) {
         private$logger$error(paste("Failed to compute BIO for", private$filename, "->", e$message))
         list(bio_E = NA, bio_D = NA)
@@ -158,13 +166,16 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
     adi = function() {
       tryCatch({
         params <- params$ADI_AEI
-        res <- soundecology::acoustic_diversity(
-          private$wav,
-          max_freq     = params$max_freq,
-          db_threshold = params$db_threshold,
-          freq_step    = params$freq_step
-        )
-        list(adi_E = res$adi_left, adi_D = res$adi_right)
+        # Suppress verbose output from soundecology
+        res <- capture.output({
+          result <- soundecology::acoustic_diversity(
+            private$wav,
+            max_freq     = params$max_freq,
+            db_threshold = params$db_threshold,
+            freq_step    = params$freq_step
+          )
+        }, type = "output")
+        list(adi_E = result$adi_left, adi_D = result$adi_right)
       }, error = function(e) {
         private$logger$error(paste("Failed to compute ADI for", private$filename, "->", e$message))
         list(adi_E = NA, adi_D = NA)
@@ -175,13 +186,16 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
     aei = function() {
       tryCatch({
         params <- params$ADI_AEI
-        res <- soundecology::acoustic_evenness(
-          private$wav,
-          max_freq     = params$max_freq,
-          db_threshold = params$db_threshold,
-          freq_step    = params$freq_step
-        )
-        list(aei_E = res$aei_left, aei_D = res$aei_right)
+        # Suppress verbose output from soundecology
+        res <- capture.output({
+          result <- soundecology::acoustic_evenness(
+            private$wav,
+            max_freq     = params$max_freq,
+            db_threshold = params$db_threshold,
+            freq_step    = params$freq_step
+          )
+        }, type = "output")
+        list(aei_E = result$aei_left, aei_D = result$aei_right)
       }, error = function(e) {
         private$logger$error(paste("Failed to compute AEI for", private$filename, "->", e$message))
         list(aei_E = NA, aei_D = NA)

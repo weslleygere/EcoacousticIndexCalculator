@@ -11,8 +11,11 @@
 #   - Saves output as a timestamped Parquet file
 # ============================================================
 
-# ==== 1. Load package ====
-library(IndexCalculator)
+# ==== 1. Load sources ====
+source("src/AudioProcessor.R")
+source("src/JobRunner.R")
+source("src/Logger.R")
+source("src/IndexCalculator.R")
 
 # ==== 2. Define main runner function ====
 run_main <- function(args = commandArgs(trailingOnly = TRUE)) {
@@ -52,11 +55,24 @@ run_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   }
 
   # ==== 6. Run JobRunner ====
+  cat("🎵 Starting acoustic index calculation...\n")
+  cat("📁 Processing", length(files), "audio file(s) from:", directory, "\n")
+  if (!is.null(indices)) {
+    cat("📊 Computing indices:", paste(indices, collapse = ", "), "\n")
+  } else {
+    cat("📊 Computing all available indices\n")
+  }
+  cat("\n")
+  
   job <- JobRunner$new(files = files, indices = indices)
   result <- job$run()
+  
+  cat("\n")
+  cat("\n")
+  cat("✅ Processing completed successfully!\n")
 
   # ==== 7. Save results ====
-  output_dir <- "results"
+  output_dir <- "data/results"
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   base_name <- basename(normalizePath(directory))
@@ -65,6 +81,8 @@ run_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   output_file <- file.path(output_dir, paste0("indices_", base_name, range_suffix, "_", timestamp, ".parquet"))
 
   arrow::write_parquet(result, output_file)
+  
+  cat("💾 Results saved to:", output_file, "\n")
 
   get("logger_job", envir = .GlobalEnv)$info(paste("Results saved to:", output_file))
 }

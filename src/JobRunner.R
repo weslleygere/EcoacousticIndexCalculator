@@ -5,7 +5,6 @@
 #'
 #' @field files A character vector of file paths to be processed.
 #' @field indices A character vector of index names to compute. If NULL, all indices will be calculated.
-#' @export
 JobRunner <- R6::R6Class("JobRunner",
   private = list(
     files = NULL,
@@ -14,7 +13,7 @@ JobRunner <- R6::R6Class("JobRunner",
 
   public = list(
 
-    #' @description Initialize JobRunner
+    #' Initialize JobRunner
     #' @param files Character vector of file paths to be processed
     #' @param indices Character vector of indices to be computed (optional)
     initialize = function(files, indices = NULL) {
@@ -24,17 +23,12 @@ JobRunner <- R6::R6Class("JobRunner",
 
     #' Run the parallel index computation
     #' @return A data frame (tibble) with computed indices and metadata for each audio file
-    run = function() {
-      # Ensure required symbols are available in each parallel worker
-      AudioProcessor <- IndexCalculator::AudioProcessor
-      IndexCalculator <- IndexCalculator::IndexCalculator
-      Logger <- IndexCalculator::Logger
-
+    run = function() {      
       future::plan(future::multisession)
 
-      Logger$new(logfile = "log/log_audio_load.txt",   level = "INFO", global_name = "logger_audio_load")
-      Logger$new(logfile = "log/log_index_calc.txt",   level = "INFO", global_name = "logger_index_calc")
-      Logger$new(logfile = "log/log_job_runner.txt",   level = "INFO", global_name = "logger_job")
+      Logger$new(logfile = "data/log/log_audio_load.txt",   level = "INFO", global_name = "logger_audio_load")
+      Logger$new(logfile = "data/log/log_index_calc.txt",   level = "INFO", global_name = "logger_index_calc")
+      Logger$new(logfile = "data/log/log_job_runner.txt",   level = "INFO", global_name = "logger_job")
 
       logger_job <- get("logger_job", envir = .GlobalEnv)
       logger_audio_load <- get("logger_audio_load", envir = .GlobalEnv)
