@@ -1,16 +1,18 @@
-#' JobRunner: Parallel audio index computation
+#' @title ParallelRunner
+#' @description Parallel audio index computation for a list of WAV files. Uses future and furrr for parallelization and progress bar. Handles logging and reproducibility.
 #'
-#' This class handles the parallel execution of audio index extraction for a list of WAV files.
-#' It uses the `future` and `furrr` packages to run index computations in parallel with a progress bar.
-#'
-#' @field files A character vector of file paths to be processed.
-#' @field indices A character vector of index names to compute. If NULL, all indices will be calculated.
-#' @field params A list of parameters for index computation.
-#' @field logger_job Logger for job-level messages.
-#' @field logger_audio_load Logger for audio loading messages.
-#' @field logger_index_calc Logger for index calculation messages.
-#' @field seed Optional integer seed for reproducible execution.
-JobRunner <- R6::R6Class("JobRunner",
+#' @section Fields:
+#' \describe{
+#'   \item{files}{A character vector of file paths to be processed.}
+#'   \item{indices}{A character vector of index names to compute. If NULL, all indices will be calculated.}
+#'   \item{params}{A list of parameters for index computation.}
+#'   \item{logger_job}{Logger for job-level messages.}
+#'   \item{logger_audio_load}{Logger for audio loading messages.}
+#'   \item{logger_index_calc}{Logger for index calculation messages.}
+#'   \item{seed}{Optional integer seed for reproducible execution.}
+#' }
+ParallelRunner <- R6::R6Class(
+  classname = "ParallelRunner",
   private = list(
     files             = NULL,
     indices           = NULL,
@@ -36,8 +38,7 @@ JobRunner <- R6::R6Class("JobRunner",
   ),
 
   public = list(
-    #' Initialize JobRunner
-    #'
+    #' @description Initialize ParallelRunner object
     #' @param files Character vector of file paths to be processed
     #' @param indices Character vector of indices to be computed (optional)
     #' @param params List of parameters for index computation
@@ -62,13 +63,8 @@ JobRunner <- R6::R6Class("JobRunner",
       private$validate_files()
     },
 
-    #' Run the parallel index computation
-    #'
-    #' @return A tibble with columns:
-    #'   * `filename`: character name of the audio file
-    #'   * `status`: processing status ("ok", "bad_wav", or "error")
-    #'   * `total_processing_time_sec`: numeric time taken for index computation (NA if not ok)
-    #'   * additional columns for each computed index when `status` is "ok"
+    #' @description Run the parallel index computation
+    #' @return Tibble with results and processing metadata for each audio file
     run = function() {
       future::plan(future::multisession)
       private$logger_job$info("Starting parallel processing of audio files.")
@@ -108,15 +104,14 @@ JobRunner <- R6::R6Class("JobRunner",
               logger   = private$logger_index_calc
             )
 
-            result <- if(is.null(private$indices)) {
-              index_calc$compute_indices() 
+            result <- if (is.null(private$indices)) {
+              index_calc$compute_indices()
             } else {
               index_calc$compute_indices(indices = private$indices)
             }
             end_time <- Sys.time()
             elapsed <- round(as.numeric(difftime(end_time, start_time, units = "secs")), 2)
 
-            # Add metadata directly to result
             result$status <- "ok"
             result$total_processing_time_sec <- elapsed
 

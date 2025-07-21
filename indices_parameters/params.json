@@ -17,10 +17,15 @@
     "max_freq": 11000,
     "fft_w": 512
   },
-  "ADI_AEI": {
+  "ADI": {
     "max_freq": 11000,
     "db_threshold": -50,
     "freq_step": 1000
+  },
+  "AEI": {
+  "max_freq": 11000,
+  "db_threshold": -50,
+  "freq_step": 1000
   },
   "ENTROPY": {
     "wl": 512

@@ -1,20 +1,22 @@
-#' IndexCalculator: Computes acoustic indices from a wave object
+#' @title IndexCalculator
+#' @description Computes acoustic indices from a stereo WAV file using the soundecology and seewave packages. Encapsulates logic for multiple ecoacoustic indices and error handling.
 #'
-#' This class encapsulates the logic for computing multiple ecoacoustic indices
-#' from a stereo WAV file, using the `soundecology` and `seewave` packages.
-#'
-#' @field filename Path of the WAV file (basename)
-#' @field wav A `tuneR::Wave` object
-#' @field logger Logger object for error reporting
-#' @field params List of parameter lists for each index
-IndexCalculator <- R6::R6Class("IndexCalculator",
+#' @section Fields:
+#' \describe{
+#'   \item{filename}{Path of the WAV file (basename)}
+#'   \item{wav}{A tuneR::Wave object}
+#'   \item{logger}{Logger object for error reporting}
+#'   \item{params}{List of parameter lists for each index}
+#' }
+IndexCalculator <- R6::R6Class(
+  classname = "IndexCalculator",
   private = list(
     filename = NULL,
     wav      = NULL,
     logger   = NULL,
     params   = NULL,
 
-    #' Helper: run an index function with suppression of console output and timing
+    #' @description Helper: run an index function with suppression of console output and timing
     #' @param index_name Name of the index
     #' @param fun A no-arg function computing and returning a named list of results
     run_and_time = function(index_name, fun) {
@@ -26,7 +28,7 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
       result
     },
 
-    #' Helper: apply function by channel and name results
+    #' @description Helper: apply function by channel and name results
     #' @param fun Function to apply, should take channel number as input
     #' @param name Base name for the results (will append _E and _D)
     compute_by_channel = function(fun, name) {
@@ -36,7 +38,7 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
   ),
 
   public = list(
-    #' Constructor
+    #' @description Initialize IndexCalculator object
     #' @param filename Basename of the audio file
     #' @param wav A tuneR::Wave object
     #' @param params List of parameters for indices
@@ -48,7 +50,7 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
       private$logger   <- logger
     },
 
-    #' Compute selected acoustic indices
+    #' @description Compute selected acoustic indices
     #' @param indices Character vector of index names, defaults to names(params)
     #' @return A tibble with results and timing for each index
     compute_indices = function(indices = names(private$params)) {
@@ -87,7 +89,7 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
       tibble::as_tibble(res)
     },
 
-    #' Compute Acoustic Complexity Index
+    #' @description Compute Acoustic Complexity Index
     aci = function() {
       tryCatch({
         p <- private$params$ACI
@@ -112,11 +114,11 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         )
       }, error = function(e) {
         private$logger$error(paste("Failed ACI for", private$filename, e$message))
-        setNames(rep(NA_real_, 4), c("ACI_E","ACI_D","ACI_bymin_E","ACI_bymin_D"))
+        setNames(rep(NA_real_, 4), c("ACI_E", "ACI_D", "ACI_bymin_E", "ACI_bymin_D"))
       })
     },
 
-    #' Compute Normalized Difference Soundscape Index
+    #' @description Compute Normalized Difference Soundscape Index
     ndsi = function() {
       tryCatch({
         p <- private$params$NDSI
@@ -137,11 +139,11 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         list(ndsi_E = res$ndsi_left, ndsi_D = res$ndsi_right)
       }, error = function(e) {
         private$logger$error(paste("Failed NDSI for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("ndsi_E","ndsi_D"))
+        setNames(rep(NA_real_, 2), c("ndsi_E", "ndsi_D"))
       })
     },
 
-    #' Compute Bioacoustic Index
+    #' @description Compute Bioacoustic Index
     bio = function() {
       tryCatch({
         p <- private$params$BIO
@@ -160,14 +162,14 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         list(bio_E = res$left_area, bio_D = res$right_area)
       }, error = function(e) {
         private$logger$error(paste("Failed BIO for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("bio_E","bio_D"))
+        setNames(rep(NA_real_, 2), c("bio_E", "bio_D"))
       })
     },
 
-    #' Compute Acoustic Diversity Index
+    #' @description Compute Acoustic Diversity Index
     adi = function() {
       tryCatch({
-        p <- private$params$ADI_AEI
+        p <- private$params$ADI
         res <- withCallingHandlers(
           soundecology::acoustic_diversity(
             private$wav,
@@ -183,14 +185,14 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         list(adi_E = res$adi_left, adi_D = res$adi_right)
       }, error = function(e) {
         private$logger$error(paste("Failed ADI for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("adi_E","adi_D"))
+        setNames(rep(NA_real_, 2), c("adi_E", "adi_D"))
       })
     },
 
-    #' Compute Acoustic Evenness Index
+    #' @description Compute Acoustic Evenness Index
     aei = function() {
       tryCatch({
-        p <- private$params$ADI_AEI
+        p <- private$params$AEI
         res <- withCallingHandlers(
           soundecology::acoustic_evenness(
             private$wav,
@@ -206,11 +208,11 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         list(aei_E = res$aei_left, aei_D = res$aei_right)
       }, error = function(e) {
         private$logger$error(paste("Failed AEI for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("aei_E","aei_D"))
+        setNames(rep(NA_real_, 2), c("aei_E", "aei_D"))
       })
     },
 
-    #' Compute Entropy (Shannon)
+    #' @description Compute Entropy (Shannon)
     entropy = function() {
       tryCatch({
         p <- private$params$ENTROPY
@@ -219,11 +221,11 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         }, "entropy")
       }, error = function(e) {
         private$logger$error(paste("Failed ENTROPY for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("entropy_E","entropy_D"))
+        setNames(rep(NA_real_, 2), c("entropy_E", "entropy_D"))
       })
     },
 
-    #' Compute Temporal Entropy
+    #' @description Compute Temporal Entropy
     temp_entropy = function() {
       tryCatch({
         private$compute_by_channel(function(ch) {
@@ -232,11 +234,11 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         }, "temp_entropy")
       }, error = function(e) {
         private$logger$error(paste("Failed TEMP_ENT for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("temp_entropy_E","temp_entropy_D"))
+        setNames(rep(NA_real_, 2), c("temp_entropy_E", "temp_entropy_D"))
       })
     },
 
-    #' Compute Spectral Entropy
+    #' @description Compute Spectral Entropy
     spec_entropy = function() {
       tryCatch({
         p <- private$params$SPEC_ENT
@@ -246,21 +248,21 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         }, "spec_entropy")
       }, error = function(e) {
         private$logger$error(paste("Failed SPEC_ENT for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("spec_entropy_E","spec_entropy_D"))
+        setNames(rep(NA_real_, 2), c("spec_entropy_E", "spec_entropy_D"))
       })
     },
 
-    #' Compute Amplitude Envelope Mean
+    #' @description Compute Amplitude Envelope Mean
     mae = function() {
       tryCatch({
         private$compute_by_channel(function(ch) seewave::M(private$wav, channel = ch), "mae")
       }, error = function(e) {
         private$logger$error(paste("Failed MAE for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("mae_E","mae_D"))
+        setNames(rep(NA_real_, 2), c("mae_E", "mae_D"))
       })
     },
 
-    #' Compute Number of Peaks in spectrum
+    #' @description Compute Number of Peaks in spectrum
     np = function() {
       tryCatch({
         p <- private$params$SPEC_ENT
@@ -270,29 +272,29 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         }, "np")
       }, error = function(e) {
         private$logger$error(paste("Failed NP for", private$filename, e$message))
-        setNames(rep(NA_integer_,2), c("np_E","np_D"))
+        setNames(rep(NA_integer_, 2), c("np_E", "np_D"))
       })
     },
 
-    #' Compute Spectral Flux index
+    #' @description Compute Spectral Flux index
     spec_flux = function() {
       tryCatch({
         p <- private$params$SPECFLUX
         private$compute_by_channel(function(ch) {
           flux <- seewave::specflux(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
-          sum(flux[,2], na.rm = TRUE)
+          sum(flux[, 2], na.rm = TRUE)
         }, "spec_flux")
       }, error = function(e) {
         private$logger$error(paste("Failed SPECFLUX for", private$filename, e$message))
-        setNames(rep(NA_real_,2), c("spec_flux_E","spec_flux_D"))
+        setNames(rep(NA_real_, 2), c("spec_flux_E", "spec_flux_D"))
       })
     },
 
-    #' Compute Spectral Properties
+    #' @description Compute Spectral Properties
     spec_prop = function() {
       tryCatch({
         p <- private$params$SPECPROP
-        
+
         vals <- lapply(1:2, function(ch) {
           spec <- seewave::meanspec(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
           sp <- seewave::specprop(spec, f = private$wav@samp.rate)
@@ -312,37 +314,34 @@ IndexCalculator <- R6::R6Class("IndexCalculator",
         )
       }, error = function(e) {
         private$logger$error(paste("Failed SPECPROP for", private$filename, e$message))
-        setNames(rep(NA_real_,8), c(
-          "spec_centroid_E","spec_centroid_D",
-          "spec_skewness_E","spec_skewness_D",
-          "spec_kurtosis_E","spec_kurtosis_D",
-          "spec_sfm_E","spec_sfm_D"
+        setNames(rep(NA_real_, 8), c(
+          "spec_centroid_E", "spec_centroid_D",
+          "spec_skewness_E", "spec_skewness_D",
+          "spec_kurtosis_E", "spec_kurtosis_D",
+          "spec_sfm_E", "spec_sfm_D"
         ))
       })
     },
 
-    #' Compute MFCC using tuneR with compute_by_channel helper
+    #' @description Compute MFCC
     mfcc = function() {
       tryCatch({
         p <- private$params$MFCC
         private$compute_by_channel(function(ch) {
-          # Extract single channel
-          wav_mono <- tuneR::mono(private$wav, which = if(ch == 1) "left" else "right")
-          
-          # Compute MFCC for this channel
+          wav_mono <- tuneR::mono(private$wav, which = if (ch == 1) "left" else "right")
+
           mfcc_result <- tuneR::melfcc(
             wav_mono,
             sr = private$wav@samp.rate,
             wintime = p$fft_w / private$wav@samp.rate,
-            hoptime = (p$fft_w * (1 - p$ovlp/100)) / private$wav@samp.rate,
+            hoptime = (p$fft_w * (1 - p$ovlp / 100)) / private$wav@samp.rate,
             numcep = p$ncoef,
             minfreq = p$min_freq,
             maxfreq = p$max_freq,
             nbands = p$nbands,
             frames_in_rows = TRUE
           )
-          
-          # Calculate mean across time frames and return as single value
+
           if (is.matrix(mfcc_result)) {
             mean(colMeans(mfcc_result, na.rm = TRUE), na.rm = TRUE)
           } else {

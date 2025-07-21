@@ -1,12 +1,14 @@
-#' AudioProcessor: WAV file loader and wrapper
+#' @title AudioProcessor
+#' @description WAV file loader and wrapper using R6. Reads a WAV file from disk and logs errors for unsupported formats or read failures. Returns a named list containing the file's basename and the wave object.
 #'
-#' This class reads a WAV file from disk and logs errors for unsupported formats or read failures.
-#' It returns a named list containing the file's basename and the wave object.
-#'
-#' @field filepath Path to the audio file (.wav)
-#' @field wav Internal slot to store the wave object (tuneR::Wave)
-#' @field logger Logger object (log4r-style) to report errors
-AudioProcessor <- R6::R6Class("AudioProcessor",
+#' @section Fields:
+#' \describe{
+#'   \item{filepath}{Path to the audio file (.wav)}
+#'   \item{wav}{Internal slot to store the wave object (tuneR::Wave)}
+#'   \item{logger}{Logger object (log4r-style) to report errors}
+#' }
+AudioProcessor <- R6::R6Class(
+  classname = "AudioProcessor",
   private = list(
     filepath = NULL,
     wav      = NULL,
@@ -14,8 +16,7 @@ AudioProcessor <- R6::R6Class("AudioProcessor",
   ),
 
   public = list(
-    #' Initialize AudioProcessor
-    #'
+    #' @description Initialize AudioProcessor object
     #' @param filepath Path to the WAV file
     #' @param logger Logger object for logging errors
     initialize = function(filepath, logger) {
@@ -23,9 +24,9 @@ AudioProcessor <- R6::R6Class("AudioProcessor",
       private$logger   <- logger
     },
 
-    #' Read the audio file and return its contents
-    #'
-    #' @return A named list with:
+    #' @description Read the audio file and return its contents
+    #' @details Checks file extension and attempts to read the WAV file. Logs errors for unsupported formats or read failures.
+    #' @return Named list with:
     #'   \item{filename}{The basename of the file path}
     #'   \item{wav}{The wave object (or NULL if failed)}
     get_audio = function() {

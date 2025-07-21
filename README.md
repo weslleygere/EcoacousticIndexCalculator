@@ -29,6 +29,7 @@ This project provides tools for **batch audio processing**, **comprehensive inde
 - 🎙️ **Stereo channel support** (left "_E" and right "_D" processed independently)
 
 - ⚙️ **Flexible batch processing** via command-line:
+
   ```bash
   Rscript main.R <folder> [index1 index2 ...] [--range <start> <end>]
   ```
@@ -51,7 +52,7 @@ This project provides tools for **batch audio processing**, **comprehensive inde
 
 ## 📁 Directory structure
 
-```
+```text
 IndexCalculator/
 ├── src/                     # R6 classes source code
 │   ├── AudioProcessor.R     # Audio loading and validation
@@ -83,12 +84,14 @@ IndexCalculator/
 ## ⚡ Quick start
 
 1. **Clone or download the project**:
+
    ```bash
    git clone <repository-url>
    cd IndexCalculator
    ```
 
 2. **Set up the R environment**:
+
    ```r
    # The renv will activate automatically via .Rprofile
    # If needed, restore dependencies:
@@ -100,6 +103,7 @@ IndexCalculator/
    - Ensure files are readable and in supported format
 
 4. **Run the main script**:
+
    ```bash
    # Windows PowerShell
    Rscript main.R "data/audios/20240923" ACI NDSI --range 1 10
@@ -133,27 +137,32 @@ IndexCalculator/
 
 ## 🎯 Usage Examples
 
-### Process all indices (default behavior):
+### Process all indices (default behavior)
+
 ```bash
 Rscript main.R "data/audios/20240923"
 ```
 
-### Single index computation:
+### Single index computation
+
 ```bash
 Rscript main.R "data/audios/20240923" ACI
 ```
 
-### Multiple specific indices:
+### Multiple specific indices
+
 ```bash
 Rscript main.R "data/audios/20240923" ACI NDSI BIO SPECPROP MFCC
 ```
 
-### Process specific file range:
+### Process specific file range
+
 ```bash
 Rscript main.R "data/audios/20240923" --range 1 50
 ```
 
-### Complex combination:
+### Complex combination
+
 ```bash
 Rscript main.R "data/audios/20240923" ENTROPY SPEC_ENT MFCC --range 10 100
 ```
@@ -178,20 +187,22 @@ Rscript main.R "data/audios/20240923" ENTROPY SPEC_ENT MFCC --range 10 100
 | Spectral Properties | `SPECPROP` | E/D | Centroid, skewness, kurtosis, SFM |
 | Mel-Frequency Cepstral Coeffs | `MFCC` | E/D | Perceptual frequency features |
 
-*E = Left channel (Esquerdo), D = Right channel (Direito)*
+**Note:** E = Left channel (Esquerdo), D = Right channel (Direito)
 
 ---
 
 ## 📈 Output Format
 
 Results are saved as `.parquet` files with automatic naming:
-```
+
+```bash
 indices_<folder_name>_<range>_<timestamp>.parquet
 ```
 
 Example: `indices_20240923_1-50_20250121_143022.parquet`
 
-### Output Structure:
+### Output Structure
+
 ```r
 # Core metadata
 filename, duration, status, total_processing_time_sec
@@ -210,7 +221,8 @@ time_ACI, time_NDSI, time_BIO, ...
 error_message
 ```
 
-### Processing Status Values:
+### Processing Status Values
+
 - `"ok"`: Successfully processed
 - `"bad_wav"`: Invalid audio file
 - `"error"`: Processing error (see logs)
@@ -221,26 +233,26 @@ error_message
 
 The project uses a **modular R6 class-based architecture** designed for scalability and maintainability:
 
-### Core Classes:
+### Core Classes
 
-- **`AudioProcessor`**: 
+- **`AudioProcessor`**:
   - Handles `.wav` file loading with `tuneR`
   - Validates audio format and integrity
   - Provides standardized audio objects
 
-- **`IndexCalculator`**: 
+- **`IndexCalculator`**:
   - Computes all acoustic indices with individual error handling
   - Uses helper functions for consistent channel processing
   - Implements timing and output standardization
   - Supports configurable parameters via JSON
 
-- **`JobRunner`**: 
+- **`JobRunner`**:
   - Orchestrates parallel processing across multiple files
   - Manages progress reporting and batch organization
   - Handles file validation and missing file warnings
   - Provides structured result aggregation
 
-- **`Logger`**: 
+- **`Logger`**:
   - Provides structured logging with `log4r`
   - Supports multiple log levels and destinations
   - Enables component-specific log files

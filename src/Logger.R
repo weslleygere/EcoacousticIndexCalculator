@@ -1,15 +1,16 @@
-#' Logger: Wrapper for log4r
+#' @title Logger
+#' @description Wrapper for log4r. Supports INFO, WARN, and ERROR levels, automatically creates log directories if needed, and can optionally log to the console.
 #'
-#' This class wraps a `log4r` logger. It supports INFO, WARN, and ERROR levels,
-#' automatically creates log directories if needed, can optionally log to the console.
-#'
-#' @field logger Internal log4r logger object
-Logger <- R6::R6Class("Logger",
+#' @section Fields:
+#' \describe{
+#'   \item{logger}{Internal log4r logger object}
+#' }
+Logger <- R6::R6Class(
+  classname = "Logger",
   private = list(
     logger = NULL,
 
-    #' Internal method: Log a message at a specific level
-    #'
+    #' @description Internal method: Log a message at a specific level
     #' @param level Logging level: "info", "warn", or "error"
     #' @param msg Message string to log
     log = function(level, msg) {
@@ -32,8 +33,7 @@ Logger <- R6::R6Class("Logger",
 
   public = list(
 
-    #' Initialize a new Logger
-    #'
+    #' @description Initialize a new Logger object
     #' @param logfile Path to the log file (default: "log.txt")
     #' @param console Logical; if TRUE, also log messages to the console (default: FALSE)
     initialize = function(logfile = "log.txt",
@@ -54,22 +54,19 @@ Logger <- R6::R6Class("Logger",
       }
     },
 
-    #' Log an INFO message
-    #'
+    #' @description Log an INFO message
     #' @param msg Message string to log
     info = function(msg) {
       private$log("info", msg)
     },
 
-    #' Log a WARN message
-    #'
+    #' @description Log a WARN message
     #' @param msg Message string to log
     warn = function(msg) {
       private$log("warn", msg)
     },
 
-    #' Log an ERROR message
-    #'
+    #' @description Log an ERROR message
     #' @param msg Message string to log
     error = function(msg) {
       private$log("error", msg)
