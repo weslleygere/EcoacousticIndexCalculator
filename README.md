@@ -244,9 +244,3 @@ The project uses a **modular R6 class-based architecture** designed for scalabil
   - Provides structured logging with `log4r`
   - Supports multiple log levels and destinations
   - Enables component-specific log files
-
-### Key Design Patterns:
-- **Dependency injection** for loggers and parameters
-- **Template method pattern** for index computation
-- **Strategy pattern** for different audio processing approaches
-- **Observer pattern** for progress tracking
