@@ -28,7 +28,7 @@ Pipeline <- R6::R6Class(
     output_dir  = "data/results",
     directory   = NULL,
 
-    #' @description Parse command line arguments with optparse (simple and efficient)
+    #' @description Parse command line arguments with optparse
     parse_args = function() {
       tryCatch({
         option_list <- list(
@@ -87,7 +87,7 @@ Pipeline <- R6::R6Class(
       }
     },
 
-    #' @description Load index parameters (cached globally) and set defaults, with validation
+    #' @description Load index parameters (cached globally) and set defaults
     load_params = function() {
       if (!exists(".INDEX_PARAMS", envir = .GlobalEnv)) {
         .GlobalEnv$.INDEX_PARAMS <- jsonlite::fromJSON(
@@ -165,14 +165,10 @@ Pipeline <- R6::R6Class(
         )
       )
       arrow::write_parquet(combined, final_file)
-      # Cleanup temporary batch partitions if final result saved successfully
       temp_dirs  <- list.dirs(private$output_dir, recursive = FALSE, full.names = TRUE)
       batch_dirs <- temp_dirs[grepl("^batch=", basename(temp_dirs))]
       if (length(batch_dirs) > 0) {
         unlink(batch_dirs, recursive = TRUE, force = TRUE)
-        private$logger$info(
-          glue::glue("🧹 Removed temporary batch directories: {paste(basename(batch_dirs), collapse = ", ")}")
-        )
       }
       private$logger$info(
         glue::glue("✅ Result saved to: {final_file}")
@@ -201,7 +197,7 @@ Pipeline <- R6::R6Class(
       ) else paste(private$indices, collapse = ", ")
       private$logger$info(
         glue::glue(
-          "🎵 Starting pipeline on '{basename(private$directory)}' — {length(private$files)} files — indices: {idxs}"
+          "🎵 Starting processing on '{basename(private$directory)}' — {length(private$files)} files — indices: {idxs}"
         )
       )
       private$process_batches()
