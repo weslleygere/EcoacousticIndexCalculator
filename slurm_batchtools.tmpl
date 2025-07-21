@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --job-name=ecoacoustic               # nome amigável do job
+#SBATCH --output=logs/ecoacoustic_%j.out     # STDOUT
+#SBATCH --error=logs/ecoacoustic_%j.err      # STDERR
+
+#SBATCH --partition=par48-x                  # fila/parition do Coaraci
+#SBATCH --nodes=1                            # 1 nó por batch
+#SBATCH --ntasks=1                           # 1 processo MPI
+#SBATCH --cpus-per-task={{resources.ncpus}} # cores reservados (ex.: 48)
+#SBATCH --mem={{resources.memory}}           # memória reservada (ex.: 192G)
+#SBATCH --time=12:00:00                      # tempo máximo (hh:mm:ss)
+
+#SBATCH --mail-user=seuemail@unicamp.br       # seu e-mail
+#SBATCH --mail-type=END,FAIL                  # receba e-mail ao terminar/falhar
+
+cd $SLURM_SUBMIT_DIR                         # volta ao diretório de submissão
+
+####### Módulos e variáveis de ambiente #######
+module load R/4.2.0      # ou a versão que você usa
+module load arrow        # se houver módulo de arrow
+export OMP_NUM_THREADS=1 # garante que sub-threads não passem do reservado
+
+####### Invocação do seu script R ##############
+Rscript main.R $ARGS   # $ARGS é passado pelo batchtools, contém
+                       # <diretório> [índices...] [--range start end]

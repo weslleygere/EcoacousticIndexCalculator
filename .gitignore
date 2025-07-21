@@ -1,6 +1,10 @@
 # renv (keep lockfile and activate.R, ignore only local paths)
 renv/library/
 renv/staging/
+venv/
 
 # Data and outputs (optional, adjust as needed)
 data/
+
+# eda
+eda.ipynb

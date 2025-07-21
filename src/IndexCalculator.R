@@ -3,313 +3,355 @@
 #' This class encapsulates the logic for computing multiple ecoacoustic indices
 #' from a stereo WAV file, using the `soundecology` and `seewave` packages.
 #'
-#' @field filename Path of the WAV file
+#' @field filename Path of the WAV file (basename)
 #' @field wav A `tuneR::Wave` object
-#' @field logger Optional logger object for error reporting
+#' @field logger Logger object for error reporting
+#' @field params List of parameter lists for each index
 IndexCalculator <- R6::R6Class("IndexCalculator",
   private = list(
     filename = NULL,
-    wav = NULL,
-    logger = NULL,
+    wav      = NULL,
+    logger   = NULL,
+    params   = NULL,
 
-    all_indices = c(
-      "ACI",
-      "NDSI",
-      "BIO",
-      "ADI",
-      "AEI",
-      "ENTROPY",
-      "TEMP_ENT",
-      "SPEC_ENT",
-      "MAE",
-      "NP"
-    )
+    #' Helper: run an index function with suppression of console output and timing
+    #' @param index_name Name of the index
+    #' @param fun A no-arg function computing and returning a named list of results
+    run_and_time = function(index_name, fun) {
+      start <- Sys.time()
+      result <- NULL
+      capture.output({ result <- fun() }, type = "output")
+      duration <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+      result[[paste0("time_", index_name)]] <- duration
+      result
+    },
+
+    #' Helper: apply function by channel and name results
+    #' @param fun Function to apply, should take channel number as input
+    #' @param name Base name for the results (will append _E and _D)
+    compute_by_channel = function(fun, name) {
+      vals <- vapply(1:2, function(ch) fun(ch), numeric(1))
+      setNames(as.list(vals), c(paste0(name, "_E"), paste0(name, "_D")))
+    }
   ),
 
   public = list(
-
     #' Constructor
-    #' @param filename File path of the original audio
-    #' @param wav The wave object (tuneR::Wave)
-    #' @param logger Optional logger for error reporting
-    initialize = function(filename, wav, logger = NULL) {
+    #' @param filename Basename of the audio file
+    #' @param wav A tuneR::Wave object
+    #' @param params List of parameters for indices
+    #' @param logger Logger object for logging
+    initialize = function(filename, wav, params, logger) {
       private$filename <- filename
-      private$wav <- wav
-      private$logger <- logger
+      private$wav      <- wav
+      private$params   <- params
+      private$logger   <- logger
     },
 
-    #' Measure execution time of a function and attach it to the result
-    #' @param func The function to execute
-    #' @param index_name Name of the index (used for naming the timing field)
-    #' @return A named list with results and processing time
-    measure_time = function(func, index_name) {
-      start <- Sys.time()
-      result <- func()
-      end <- Sys.time()
-      duration_sec <- as.numeric(difftime(end, start, units = "secs"))
-      result[[paste0("time_", index_name)]] <- duration_sec
-      return(result)
-    },
-
-    #' Compute the selected acoustic indices
-    #' @param indices Vector of index names to compute (default: all)
-    #' @return A tibble with the results
-    compute_indices = function(indices = private$all_indices) {
-      results <- list(
+    #' Compute selected acoustic indices
+    #' @param indices Character vector of index names, defaults to names(params)
+    #' @return A tibble with results and timing for each index
+    compute_indices = function(indices = names(private$params)) {
+      res <- list(
         filename = private$filename,
-        duration = self$duration()
+        duration = tryCatch(
+          seewave::duration(private$wav),
+          error = function(e) {
+            private$logger$error(paste("Failed duration for", private$filename, e$message))
+            NA_real_
+          }
+        )
       )
 
-      index_functions <- list(
-        ACI        = self$aci,
-        NDSI       = self$ndsi,
-        BIO        = self$bio,
-        ADI        = self$adi,
-        AEI        = self$aei,
-        ENTROPY    = self$entropy,
-        TEMP_ENT   = self$temp_entropy,
-        SPEC_ENT   = self$spec_entropy,
-        MAE        = self$mae,
-        NP         = self$np
+      fns <- list(
+        ACI      = self$aci,
+        NDSI     = self$ndsi,
+        BIO      = self$bio,
+        ADI      = self$adi,
+        AEI      = self$aei,
+        ENTROPY  = self$entropy,
+        TEMP_ENT = self$temp_entropy,
+        SPEC_ENT = self$spec_entropy,
+        MAE      = self$mae,
+        NP       = self$np,
+        SPECFLUX = self$spec_flux,
+        SPECPROP = self$spec_prop,
+        MFCC     = self$mfcc
       )
 
-      selected <- intersect(names(index_functions), indices)
-
-      for (index_name in selected) {
-        f <- index_functions[[index_name]]
-        res <- self$measure_time(f, index_name)
-        results <- c(results, res)
+      sel <- intersect(names(fns), indices)
+      for (nm in sel) {
+        res <- c(res, private$run_and_time(nm, fns[[nm]]))
       }
 
-      tibble::as_tibble(results)
+      tibble::as_tibble(res)
     },
 
-    #' Get the duration of the WAV file
-    duration = function() {
-      tryCatch({
-        seewave::duration(private$wav)
-      }, error = function(e) {
-        private$logger$error(paste("Failed to compute duration for", private$filename, "->", e$message))
-        NA
-      })
-    },
-
-    #' Compute Acoustic Complexity Index (ACI)
+    #' Compute Acoustic Complexity Index
     aci = function() {
       tryCatch({
-        params <- params$ACI
-        # Suppress verbose output from soundecology
-        res <- capture.output({
-          result <- soundecology::acoustic_complexity(
+        p <- private$params$ACI
+        res <- withCallingHandlers(
+          soundecology::acoustic_complexity(
             private$wav,
-            min_freq = params$min_freq,
-            max_freq = params$max_freq,
-            fft_w    = params$fft_w,
-            j        = params$j
-          )
-        }, type = "output")
+            min_freq = p$min_freq,
+            max_freq = p$max_freq,
+            fft_w    = p$fft_w,
+            j        = p$j
+          ),
+          warning = function(w) {
+            private$logger$warn(paste("Warning in ACI for", private$filename, w$message))
+            invokeRestart("muffleWarning")
+          }
+        )
         list(
-          ACI_E = result$AciTotAll_left,
-          ACI_D = result$AciTotAll_right,
-          ACI_bymin_E = result$AciTotAll_left_bymin,
-          ACI_bymin_D = result$AciTotAll_right_bymin
+          ACI_E       = res$AciTotAll_left,
+          ACI_D       = res$AciTotAll_right,
+          ACI_bymin_E = res$AciTotAll_left_bymin,
+          ACI_bymin_D = res$AciTotAll_right_bymin
         )
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute ACI for", private$filename, "->", e$message))
-        list(ACI_E = NA, ACI_D = NA, ACI_bymin_E = NA, ACI_bymin_D = NA)
+        private$logger$error(paste("Failed ACI for", private$filename, e$message))
+        setNames(rep(NA_real_, 4), c("ACI_E","ACI_D","ACI_bymin_E","ACI_bymin_D"))
       })
     },
 
-    #' Compute Normalized Difference Soundscape Index (NDSI)
+    #' Compute Normalized Difference Soundscape Index
     ndsi = function() {
       tryCatch({
-        params <- params$NDSI
-        # Suppress verbose output from soundecology
-        res <- capture.output({
-          result <- soundecology::ndsi(
+        p <- private$params$NDSI
+        res <- withCallingHandlers(
+          soundecology::ndsi(
             private$wav,
-            anthro_min = params$anthro_min,
-            anthro_max = params$anthro_max,
-            bio_min    = params$bio_min,
-            bio_max    = params$bio_max,
-            fft_w      = params$fft_w
-          )
-        }, type = "output")
-        list(ndsi_E = result$ndsi_left, ndsi_D = result$ndsi_right)
+            anthro_min = p$anthro_min,
+            anthro_max = p$anthro_max,
+            bio_min    = p$bio_min,
+            bio_max    = p$bio_max,
+            fft_w      = p$fft_w
+          ),
+          warning = function(w) {
+            private$logger$warn(paste("Warning in NDSI for", private$filename, w$message))
+            invokeRestart("muffleWarning")
+          }
+        )
+        list(ndsi_E = res$ndsi_left, ndsi_D = res$ndsi_right)
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute NDSI for", private$filename, "->", e$message))
-        list(ndsi_E = NA, ndsi_D = NA)
+        private$logger$error(paste("Failed NDSI for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("ndsi_E","ndsi_D"))
       })
     },
 
-    #' Compute Bioacoustic Index (BIO)
+    #' Compute Bioacoustic Index
     bio = function() {
       tryCatch({
-        params <- params$BIO
-        # Suppress verbose output from soundecology
-        res <- capture.output({
-          result <- soundecology::bioacoustic_index(
+        p <- private$params$BIO
+        res <- withCallingHandlers(
+          soundecology::bioacoustic_index(
             private$wav,
-            min_freq = params$min_freq,
-            max_freq = params$max_freq,
-            fft_w    = params$fft_w
-          )
-        }, type = "output")
-        list(bio_E = result$left_area, bio_D = result$right_area)
+            min_freq = p$min_freq,
+            max_freq = p$max_freq,
+            fft_w    = p$fft_w
+          ),
+          warning = function(w) {
+            private$logger$warn(paste("Warning in BIO for", private$filename, w$message))
+            invokeRestart("muffleWarning")
+          }
+        )
+        list(bio_E = res$left_area, bio_D = res$right_area)
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute BIO for", private$filename, "->", e$message))
-        list(bio_E = NA, bio_D = NA)
+        private$logger$error(paste("Failed BIO for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("bio_E","bio_D"))
       })
     },
 
-    #' Compute Acoustic Diversity Index (ADI)
+    #' Compute Acoustic Diversity Index
     adi = function() {
       tryCatch({
-        params <- params$ADI_AEI
-        # Suppress verbose output from soundecology
-        res <- capture.output({
-          result <- soundecology::acoustic_diversity(
+        p <- private$params$ADI_AEI
+        res <- withCallingHandlers(
+          soundecology::acoustic_diversity(
             private$wav,
-            max_freq     = params$max_freq,
-            db_threshold = params$db_threshold,
-            freq_step    = params$freq_step
-          )
-        }, type = "output")
-        list(adi_E = result$adi_left, adi_D = result$adi_right)
+            max_freq     = p$max_freq,
+            db_threshold = p$db_threshold,
+            freq_step    = p$freq_step
+          ),
+          warning = function(w) {
+            private$logger$warn(paste("Warning in ADI for", private$filename, w$message))
+            invokeRestart("muffleWarning")
+          }
+        )
+        list(adi_E = res$adi_left, adi_D = res$adi_right)
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute ADI for", private$filename, "->", e$message))
-        list(adi_E = NA, adi_D = NA)
+        private$logger$error(paste("Failed ADI for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("adi_E","adi_D"))
       })
     },
 
-    #' Compute Acoustic Evenness Index (AEI)
+    #' Compute Acoustic Evenness Index
     aei = function() {
       tryCatch({
-        params <- params$ADI_AEI
-        # Suppress verbose output from soundecology
-        res <- capture.output({
-          result <- soundecology::acoustic_evenness(
+        p <- private$params$ADI_AEI
+        res <- withCallingHandlers(
+          soundecology::acoustic_evenness(
             private$wav,
-            max_freq     = params$max_freq,
-            db_threshold = params$db_threshold,
-            freq_step    = params$freq_step
-          )
-        }, type = "output")
-        list(aei_E = result$aei_left, aei_D = result$aei_right)
+            max_freq     = p$max_freq,
+            db_threshold = p$db_threshold,
+            freq_step    = p$freq_step
+          ),
+          warning = function(w) {
+            private$logger$warn(paste("Warning in AEI for", private$filename, w$message))
+            invokeRestart("muffleWarning")
+          }
+        )
+        list(aei_E = res$aei_left, aei_D = res$aei_right)
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute AEI for", private$filename, "->", e$message))
-        list(aei_E = NA, aei_D = NA)
+        private$logger$error(paste("Failed AEI for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("aei_E","aei_D"))
       })
     },
 
-    #' Compute Entropy Index (Shannon Entropy)
+    #' Compute Entropy (Shannon)
     entropy = function() {
-      params <- params$ENTROPY
       tryCatch({
-        compute_entropy <- function(channel) {
-          seewave::H(
-            wave = private$wav,
-            f    = private$wav@samp.rate,
-            channel = channel,
-            wl   = params$wl
-          )
-        }
-        list(
-          entropy_E = compute_entropy(1),
-          entropy_D = compute_entropy(2)
-        )
+        p <- private$params$ENTROPY
+        private$compute_by_channel(function(ch) {
+          seewave::H(wave = private$wav, f = private$wav@samp.rate, channel = ch, wl = p$wl)
+        }, "entropy")
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute ENTROPY for", private$filename, "->", e$message))
-        list(entropy_E = NA, entropy_D = NA)
+        private$logger$error(paste("Failed ENTROPY for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("entropy_E","entropy_D"))
       })
     },
 
     #' Compute Temporal Entropy
     temp_entropy = function() {
       tryCatch({
-        compute_th <- function(channel) {
-          enve <- seewave::env(
-            private$wav,
-            f = private$wav@samp.rate,
-            envt = "abs",
-            plot = FALSE,
-            channel = channel
-          )
+        private$compute_by_channel(function(ch) {
+          enve <- seewave::env(private$wav, f = private$wav@samp.rate, envt = "abs", plot = FALSE, channel = ch)
           seewave::th(enve)
-        }
-        list(
-          temp_entropy_E = compute_th(1),
-          temp_entropy_D = compute_th(2)
-        )
+        }, "temp_entropy")
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute TEMP_ENT for", private$filename, "->", e$message))
-        list(temp_entropy_E = NA, temp_entropy_D = NA)
+        private$logger$error(paste("Failed TEMP_ENT for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("temp_entropy_E","temp_entropy_D"))
       })
     },
 
     #' Compute Spectral Entropy
     spec_entropy = function() {
-      params <- params$SPEC_ENT
       tryCatch({
-        compute_sh <- function(channel) {
-          spec <- seewave::meanspec(
-            private$wav,
-            wl = params$wl,
-            ovlp = params$ovlp,
-            plot = FALSE,
-            channel = channel,
-            f = private$wav@samp.rate
-          )
+        p <- private$params$SPEC_ENT
+        private$compute_by_channel(function(ch) {
+          spec <- seewave::meanspec(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
           seewave::sh(spec)
-        }
-        list(
-          spec_entropy_E = compute_sh(1),
-          spec_entropy_D = compute_sh(2)
-        )
+        }, "spec_entropy")
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute SPEC_ENT for", private$filename, "->", e$message))
-        list(spec_entropy_E = NA, spec_entropy_D = NA)
+        private$logger$error(paste("Failed SPEC_ENT for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("spec_entropy_E","spec_entropy_D"))
       })
     },
 
-    #' Compute Amplitude Envelope Mean (MAE)
+    #' Compute Amplitude Envelope Mean
     mae = function() {
       tryCatch({
-        compute_mae <- function(channel) {
-          seewave::M(private$wav, channel = channel)
-        }
-        list(
-          mae_E = compute_mae(1),
-          mae_D = compute_mae(2)
-        )
+        private$compute_by_channel(function(ch) seewave::M(private$wav, channel = ch), "mae")
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute MAE for", private$filename, "->", e$message))
-        list(mae_E = NA, mae_D = NA)
+        private$logger$error(paste("Failed MAE for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("mae_E","mae_D"))
       })
     },
 
-    #' Compute Number of Peaks (NP) in spectrum
+    #' Compute Number of Peaks in spectrum
     np = function() {
-      params <- params$SPEC_ENT
       tryCatch({
-        compute_np <- function(channel) {
-          spec <- seewave::meanspec(
-            private$wav,
-            wl = params$wl,
-            ovlp = params$ovlp,
-            plot = FALSE,
-            channel = channel,
-            f = private$wav@samp.rate
-          )
+        p <- private$params$SPEC_ENT
+        private$compute_by_channel(function(ch) {
+          spec <- seewave::meanspec(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
           nrow(seewave::fpeaks(spec, plot = FALSE))
-        }
+        }, "np")
+      }, error = function(e) {
+        private$logger$error(paste("Failed NP for", private$filename, e$message))
+        setNames(rep(NA_integer_,2), c("np_E","np_D"))
+      })
+    },
+
+    #' Compute Spectral Flux index
+    spec_flux = function() {
+      tryCatch({
+        p <- private$params$SPECFLUX
+        private$compute_by_channel(function(ch) {
+          flux <- seewave::specflux(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
+          sum(flux[,2], na.rm = TRUE)
+        }, "spec_flux")
+      }, error = function(e) {
+        private$logger$error(paste("Failed SPECFLUX for", private$filename, e$message))
+        setNames(rep(NA_real_,2), c("spec_flux_E","spec_flux_D"))
+      })
+    },
+
+    #' Compute Spectral Properties
+    spec_prop = function() {
+      tryCatch({
+        p <- private$params$SPECPROP
+        
+        vals <- lapply(1:2, function(ch) {
+          spec <- seewave::meanspec(private$wav, f = private$wav@samp.rate, wl = p$wl, ovlp = p$ovlp, plot = FALSE, channel = ch)
+          sp <- seewave::specprop(spec, f = private$wav@samp.rate)
+
+          c(centroid = sp$cent, skewness = sp$skewness, kurtosis = sp$kurtosis, sfm = sp$sfm)
+        })
+
         list(
-          np_E = compute_np(1),
-          np_D = compute_np(2)
+          spec_centroid_E = as.numeric(vals[[1]]["centroid"]),
+          spec_centroid_D = as.numeric(vals[[2]]["centroid"]),
+          spec_skewness_E = as.numeric(vals[[1]]["skewness"]),
+          spec_skewness_D = as.numeric(vals[[2]]["skewness"]),
+          spec_kurtosis_E = as.numeric(vals[[1]]["kurtosis"]),
+          spec_kurtosis_D = as.numeric(vals[[2]]["kurtosis"]),
+          spec_sfm_E = as.numeric(vals[[1]]["sfm"]),
+          spec_sfm_D = as.numeric(vals[[2]]["sfm"])
         )
       }, error = function(e) {
-        private$logger$error(paste("Failed to compute NP for", private$filename, "->", e$message))
-        list(np_E = NA, np_D = NA)
+        private$logger$error(paste("Failed SPECPROP for", private$filename, e$message))
+        setNames(rep(NA_real_,8), c(
+          "spec_centroid_E","spec_centroid_D",
+          "spec_skewness_E","spec_skewness_D",
+          "spec_kurtosis_E","spec_kurtosis_D",
+          "spec_sfm_E","spec_sfm_D"
+        ))
+      })
+    },
+
+    #' Compute MFCC using tuneR with compute_by_channel helper
+    mfcc = function() {
+      tryCatch({
+        p <- private$params$MFCC
+        private$compute_by_channel(function(ch) {
+          # Extract single channel
+          wav_mono <- tuneR::mono(private$wav, which = if(ch == 1) "left" else "right")
+          
+          # Compute MFCC for this channel
+          mfcc_result <- tuneR::melfcc(
+            wav_mono,
+            sr = private$wav@samp.rate,
+            wintime = p$fft_w / private$wav@samp.rate,
+            hoptime = (p$fft_w * (1 - p$ovlp/100)) / private$wav@samp.rate,
+            numcep = p$ncoef,
+            minfreq = p$min_freq,
+            maxfreq = p$max_freq,
+            nbands = p$nbands,
+            frames_in_rows = TRUE
+          )
+          
+          # Calculate mean across time frames and return as single value
+          if (is.matrix(mfcc_result)) {
+            mean(colMeans(mfcc_result, na.rm = TRUE), na.rm = TRUE)
+          } else {
+            mean(as.numeric(mfcc_result), na.rm = TRUE)
+          }
+        }, "mfcc")
+      }, error = function(e) {
+        private$logger$error(paste("Failed MFCC for", private$filename, ":", e$message))
+        setNames(rep(NA_real_, 2), c("mfcc_E", "mfcc_D"))
       })
     }
   )

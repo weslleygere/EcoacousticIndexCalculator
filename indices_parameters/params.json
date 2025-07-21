@@ -1,0 +1,54 @@
+{
+  "ACI": {
+    "min_freq": 0,
+    "max_freq": 11000,
+    "j": 10,
+    "fft_w": 512
+  },
+  "NDSI": {
+    "anthro_min": 0,
+    "anthro_max": 2000,
+    "bio_min": 2000,
+    "bio_max": 11000,
+    "fft_w": 512
+  },
+  "BIO": {
+    "min_freq": 2000,
+    "max_freq": 11000,
+    "fft_w": 512
+  },
+  "ADI_AEI": {
+    "max_freq": 11000,
+    "db_threshold": -50,
+    "freq_step": 1000
+  },
+  "ENTROPY": {
+    "wl": 512
+  },
+  "SPEC_ENT": {
+    "wl": 512,
+    "ovlp": 0
+  },
+  "NP": {
+    "wl": 512,
+    "ovlp": 0
+  },
+  "SPECFLUX": {
+    "wl": 512,
+    "ovlp": 0
+  },
+  "SPECPROP": {
+    "wl": 512,
+    "ovlp": 0
+  },
+  "MFCC": {
+    "fft_w": 512,
+    "ovlp": 0,
+    "min_freq": 0,
+    "max_freq": 11000,
+    "nbands": 40,
+    "ncoef": 13
+  },
+  "TEMP_ENT": {},
+  "MAE": {}
+}
