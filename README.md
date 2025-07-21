@@ -2,13 +2,13 @@
 
 An efficient, modular, and HPC-ready R project for computing ecoacoustic indices from stereo `.wav` files — ideal for soundscape analysis in ecological research.
 
-This project provides tools for **batch audio processing**, **index computation**, and **runtime monitoring**, with **parallel execution** support and detailed logging. It integrates key ecoacoustic packages such as `soundecology`, `seewave`, and `tuneR`.
+This project provides tools for **batch audio processing**, **comprehensive index computation**, and **runtime monitoring**, with **parallel execution** support and detailed logging. It integrates key ecoacoustic packages such as `soundecology`, `seewave`, and `tuneR`.
 
 ---
 
 ## 🚀 Features
 
-- ✅ **Ecoacoustic index computation** from stereo audio:
+- ✅ **Comprehensive ecoacoustic index computation** from stereo audio:
   - **From `soundecology`**:  
     - ACI (Acoustic Complexity Index)  
     - ADI (Acoustic Diversity Index)  
@@ -16,27 +16,36 @@ This project provides tools for **batch audio processing**, **index computation*
     - BIO (Bioacoustic Index)  
     - NDSI (Normalized Difference Soundscape Index)
   - **From `seewave`**:
-    - Temporal and spectral entropy  
-    - Number of peaks in spectrum  
-    - Mean amplitude envelope  
-    - Other time-frequency descriptors
+    - ENTROPY (Shannon entropy)
+    - TEMP_ENT (Temporal entropy)
+    - SPEC_ENT (Spectral entropy)
+    - MAE (Mean Amplitude Envelope)
+    - NP (Number of Peaks in spectrum)
+    - SPECFLUX (Spectral Flux)
+    - SPECPROP (Spectral Properties: centroid, skewness, kurtosis, SFM)
+  - **From `tuneR`**:
+    - MFCC (Mel-Frequency Cepstral Coefficients)
 
-- 🎙️ **Stereo channel support** (left and right processed independently)
+- 🎙️ **Stereo channel support** (left "_E" and right "_D" processed independently)
 
-- ⚙️ **Batch processing** via command-line:
+- ⚙️ **Flexible batch processing** via command-line:
   ```bash
-  Rscript scripts/main.R <folder> [index1 index2 ...] --range <start> <end>
+  Rscript main.R <folder> [index1 index2 ...] [--range <start> <end>]
   ```
 
-- 🧵 **Parallel computation** using `furrr` + `future`
+- 🧵 **Parallel computation** using `furrr` + `future` with automatic core detection
 
-- ⏱️ **Per-file runtime tracking**
+- ⏱️ **Per-file and per-index runtime tracking**
 
-- 📝 **Structured logging** with `log4r` (separate logs for loading, processing, and orchestration)
+- 📝 **Structured logging** with `log4r` (separate logs for job orchestration, audio loading, and index calculation)
 
-- 💾 **Output in `.parquet` format** via `arrow` (highly compressed and analytics-friendly)
+- 💾 **Efficient output** in `.parquet` format via `arrow` (highly compressed and analytics-friendly)
 
-- 🎯 **Clean console output** with progress bars and informative messages
+- 🎯 **Clean console output** with progress bars and informative status messages
+
+- 🛡️ **Robust error handling** with graceful degradation and detailed error logging
+
+- 📊 **Comprehensive metadata** including processing status, timing, and error details
 
 ---
 
@@ -45,21 +54,26 @@ This project provides tools for **batch audio processing**, **index computation*
 ```
 IndexCalculator/
 ├── src/                     # R6 classes source code
-│   ├── AudioProcessor.R     # Audio loading and preprocessing
-│   ├── IndexCalculator.R    # Index computation methods
+│   ├── AudioProcessor.R     # Audio loading and validation
+│   ├── IndexCalculator.R    # Comprehensive index computation methods
 │   ├── JobRunner.R          # Parallel processing orchestration
-│   └── Logger.R             # Logging utilities
-├── scripts/                 # Main CLI entry point
-│   └── main.R               # Command-line interface
-├── indices_parameters/      # Customizable parameters for index calculations
-│   └── params.R             # Parameter definitions
-├── data/                    # Input data and results
+│   └── Logger.R             # Structured logging utilities
+├── main.R                   # Main CLI entry point
+├── indices_parameters/      # Configurable computation parameters
+│   └── params.json          # JSON parameter definitions for all indices
+├── data/                    # Input data and outputs
 │   ├── audios/              # Audio files (.wav)
+│   │   └── 20240923/        # Example audio folder
 │   ├── results/             # Output files (.parquet)
-│   └── log/                 # Log files
+│   └── log/                 # Structured log files
+│       ├── log_main.txt     # Main execution log
+│       ├── log_job_runner.txt   # Job orchestration log
+│       ├── log_audio_load.txt   # Audio loading log
+│       └── log_index_calc.txt   # Index calculation log
 ├── renv/                    # Project-local R environment
 ├── renv.lock                # Dependency lock file
 ├── .Rprofile                # R startup configuration
+├── slurm_batchtools.tmpl    # HPC cluster job template
 ├── .gitignore               # Git ignore patterns
 └── README.md                # This file
 ```
@@ -81,29 +95,37 @@ IndexCalculator/
    renv::restore()
    ```
 
-3. **Run the main script**:
+3. **Prepare your audio files**:
+   - Place `.wav` files in `data/audios/<folder_name>/`
+   - Ensure files are readable and in supported format
+
+4. **Run the main script**:
    ```bash
    # Windows PowerShell
-   & "C:\Program Files\R\R-4.5.1\bin\Rscript.exe" scripts/main.R "data/audios/20240923" ACI --range 1 10
+   Rscript main.R "data/audios/20240923" ACI NDSI --range 1 10
    
    # Linux/macOS
-   Rscript scripts/main.R data/audios/20240923 ACI --range 1 10
+   Rscript main.R data/audios/20240923 ACI NDSI --range 1 10
    ```
 
-4. **Check logs and outputs**:
-   - Logs in `data/log/`
+5. **Check results**:
+   - Logs in `data/log/` for detailed processing information
    - Output `.parquet` files in `data/results/`
+   - Monitor progress via console output
 
 ---
 
 ## 🔧 Requirements
 
-- **R ≥ 4.5** (recommended for best compatibility)
+- **R ≥ 4.4** (tested with R 4.5)
 - **Rtools** (Windows only, for package compilation)
+- **System memory**: Recommended 8GB+ for large audio files
 - **Dependencies** (automatically managed by `renv`):
-  - `soundecology`, `seewave`, `tuneR` (audio processing)
-  - `log4r`, `arrow`, `furrr`, `future`, `tibble` (utilities)
-  - `R6`, `dplyr`, `purrr` (programming)
+  - **Audio processing**: `soundecology`, `seewave`, `tuneR`
+  - **Parallel computing**: `furrr`, `future`
+  - **Data handling**: `arrow`, `tibble`, `dplyr`, `purrr`
+  - **Utilities**: `log4r`, `jsonlite`, `glue`
+  - **Framework**: `R6`
 
 > All dependencies are managed with [`renv`](https://rstudio.github.io/renv/). The environment will be activated automatically when you start R in this project directory.
 
@@ -111,83 +133,120 @@ IndexCalculator/
 
 ## 🎯 Usage Examples
 
-### Basic usage (single index):
+### Process all indices (default behavior):
 ```bash
-Rscript scripts/main.R "data/audios/20240923" ACI
+Rscript main.R "data/audios/20240923"
 ```
 
-### Multiple indices:
+### Single index computation:
 ```bash
-Rscript scripts/main.R "data/audios/20240923" ACI NDSI BIO
+Rscript main.R "data/audios/20240923" ACI
+```
+
+### Multiple specific indices:
+```bash
+Rscript main.R "data/audios/20240923" ACI NDSI BIO SPECPROP MFCC
 ```
 
 ### Process specific file range:
 ```bash
-Rscript scripts/main.R "data/audios/20240923" ACI --range 1 10
+Rscript main.R "data/audios/20240923" --range 1 50
 ```
 
-### Process all files with all indices:
+### Complex combination:
 ```bash
-Rscript scripts/main.R "data/audios/20240923"
+Rscript main.R "data/audios/20240923" ENTROPY SPEC_ENT MFCC --range 10 100
 ```
 
 ---
 
-## � Output Format
+## 📊 Available Indices
 
-Results are saved as `.parquet` files with the following naming convention:
+| Index | Code | Channels | Description |
+|-------|------|----------|-------------|
+| Acoustic Complexity | `ACI` | E/D | Complexity based on temporal variation |
+| Bioacoustic Index | `BIO` | E/D | Biological activity indicator |
+| Normalized Diff. Soundscape | `NDSI` | E/D | Anthrophonic vs biophonic sounds |
+| Acoustic Diversity | `ADI` | E/D | Frequency band diversity |
+| Acoustic Evenness | `AEI` | E/D | Frequency distribution evenness |
+| Shannon Entropy | `ENTROPY` | E/D | Spectral complexity measure |
+| Temporal Entropy | `TEMP_ENT` | E/D | Temporal envelope entropy |
+| Spectral Entropy | `SPEC_ENT` | E/D | Spectral distribution entropy |
+| Mean Amplitude Envelope | `MAE` | E/D | Average amplitude measure |
+| Number of Peaks | `NP` | E/D | Spectral peak count |
+| Spectral Flux | `SPECFLUX` | E/D | Spectral change measure |
+| Spectral Properties | `SPECPROP` | E/D | Centroid, skewness, kurtosis, SFM |
+| Mel-Frequency Cepstral Coeffs | `MFCC` | E/D | Perceptual frequency features |
+
+*E = Left channel (Esquerdo), D = Right channel (Direito)*
+
+---
+
+## 📈 Output Format
+
+Results are saved as `.parquet` files with automatic naming:
 ```
 indices_<folder_name>_<range>_<timestamp>.parquet
 ```
 
-Example: `indices_20240923_1-10_20250707_182101.parquet`
+Example: `indices_20240923_1-50_20250121_143022.parquet`
 
-The output contains:
-- **Metadata**: filename, processing timestamps
-- **Index values**: for left and right channels
-- **Processing times**: per-index computation duration
+### Output Structure:
+```r
+# Core metadata
+filename, duration, status, total_processing_time_sec
 
----
+# Index values (example for ACI)
+ACI_E, ACI_D, ACI_bymin_E, ACI_bymin_D
 
-## 📚 Architecture
+# Spectral properties (8 values)
+spec_centroid_E, spec_centroid_D, spec_skewness_E, spec_skewness_D
+spec_kurtosis_E, spec_kurtosis_D, spec_sfm_E, spec_sfm_D
 
-The project uses a modular **R6 class-based architecture**:
+# Processing times
+time_ACI, time_NDSI, time_BIO, ...
 
-- **`AudioProcessor`**: Handles `.wav` file loading and preprocessing
-- **`IndexCalculator`**: Computes individual acoustic indices with error handling
-- **`JobRunner`**: Orchestrates parallel processing of multiple files
-- **`Logger`**: Provides structured logging with different log levels
+# Error information (when applicable)
+error_message
+```
 
-All classes are thoroughly documented and designed for extensibility and maintainability.
-
----
-
-## 🛠️ Development
-
-### Adding new indices:
-1. Add the computation method to `IndexCalculator.R`
-2. Update the `all_indices` list
-3. Add parameters to `indices_parameters/params.R`
-
-### Customizing parameters:
-Edit `indices_parameters/params.R` to modify frequency ranges, FFT windows, and other computation parameters.
-
-### Logging:
-Logs are automatically generated in `data/log/` with separate files for different components.
+### Processing Status Values:
+- `"ok"`: Successfully processed
+- `"bad_wav"`: Invalid audio file
+- `"error"`: Processing error (see logs)
 
 ---
 
-## 📝 License
+## 🏗️ Architecture
 
-This project is provided as-is for research and educational purposes.
+The project uses a **modular R6 class-based architecture** designed for scalability and maintainability:
 
----
+### Core Classes:
 
-## 🙏 Acknowledgments
+- **`AudioProcessor`**: 
+  - Handles `.wav` file loading with `tuneR`
+  - Validates audio format and integrity
+  - Provides standardized audio objects
 
-Built with these excellent R packages:
-- [`soundecology`](https://cran.r-project.org/package=soundecology) - Core acoustic indices
-- [`seewave`](https://cran.r-project.org/package=seewave) - Sound analysis and synthesis
-- [`tuneR`](https://cran.r-project.org/package=tuneR) - Audio processing
-- [`furrr`](https://cran.r-project.org/package=furrr) - Parallel processing
-- [`arrow`](https://cran.r-project.org/package=arrow) - Efficient data storage
+- **`IndexCalculator`**: 
+  - Computes all acoustic indices with individual error handling
+  - Uses helper functions for consistent channel processing
+  - Implements timing and output standardization
+  - Supports configurable parameters via JSON
+
+- **`JobRunner`**: 
+  - Orchestrates parallel processing across multiple files
+  - Manages progress reporting and batch organization
+  - Handles file validation and missing file warnings
+  - Provides structured result aggregation
+
+- **`Logger`**: 
+  - Provides structured logging with `log4r`
+  - Supports multiple log levels and destinations
+  - Enables component-specific log files
+
+### Key Design Patterns:
+- **Dependency injection** for loggers and parameters
+- **Template method pattern** for index computation
+- **Strategy pattern** for different audio processing approaches
+- **Observer pattern** for progress tracking
