@@ -44,11 +44,6 @@ This project provides tools for **batch audio processing**, **comprehensive inde
 
 - 🎯 **Clean console output** with progress bars and informative status messages
 
-- 🛡️ **Robust error handling**:
-  - Invalid argument syntax (indices, range, directory) stops execution with clear messages
-  - Invalid index names are detected before any calculation
-  - Invalid range or directory is reported with specific error messages
-
 - 📊 **Comprehensive metadata** including processing status, timing, and error details
 
 ---
@@ -57,29 +52,30 @@ This project provides tools for **batch audio processing**, **comprehensive inde
 
 ```text
 IndexCalculator/
-├── src/                     # R6 classes source code
-│   ├── AudioProcessor.R     # Audio loading and validation
-│   ├── IndexCalculator.R    # Comprehensive index computation methods
-│   ├── ParallelRunner.R     # Parallel processing orchestration
-│   └── Logger.R             # Structured logging utilities
-├── main.R                   # Main CLI entry point
-├── indices_parameters/      # Configurable computation parameters
-│   └── params.json          # JSON parameter definitions for all indices
-├── data/                    # Input data and outputs
-│   ├── audios/              # Audio files (.wav)
-│   │   └── 20240923/        # Example audio folder
-│   ├── results/             # Output files (.parquet)
-│   └── log/                 # Structured log files
-│       ├── log_main.txt     # Main execution log
+├── src/                              # R6 classes source code
+│   ├── AudioProcessor.R              # Audio loading and validation
+│   ├── IndexCalculator.R             # Comprehensive index computation methods
+│   ├── ParallelRunner.R              # Parallel processing orchestration
+|   ├── Logger.R                      # Structured logging utilities
+│   └── Pipeline.R                    # Pipeline for job runner
+├── main.R                            # Main CLI entry point
+├── indices_parameters/               # Configurable computation parameters
+│   └── params.json                   # JSON parameter definitions for all indices
+├── data/                             # Input data and outputs
+│   ├── audios/                       # Audio files (.wav)
+│   │   └── 20240923/                 # Example audio folder
+│   ├── results/                      # Output files (.parquet)
+│   └── log/                          # Structured log files
+│       ├── log_main.txt              # Main execution log
 │       ├── log_parallel_runner.txt   # Parallel orchestration log
-│       ├── log_audio_load.txt   # Audio loading log
-│       └── log_index_calc.txt   # Index calculation log
-├── renv/                    # Project-local R environment
-├── renv.lock                # Dependency lock file
-├── .Rprofile                # R startup configuration
-├── slurm_batchtools.tmpl    # HPC cluster job template
-├── .gitignore               # Git ignore patterns
-└── README.md                # This file
+│       ├── log_audio_load.txt        # Audio loading log
+│       └── log_index_calc.txt        # Index calculation log
+├── renv/                             # Project-local R environment
+├── renv.lock                         # Dependency lock file
+├── .Rprofile                         # R startup configuration
+├── slurm_batchtools.tmpl             # HPC cluster job template
+├── .gitignore                        # Git ignore patterns
+└── README.md                         # This file
 ```
 
 ---
@@ -223,39 +219,3 @@ time_ACI, time_NDSI, time_BIO, ...
 # Error information (when applicable)
 error_message
 ```
-
-### Processing Status Values
-
-- `"ok"`: Successfully processed
-- `"bad_wav"`: Invalid audio file
-- `"error"`: Processing error (see logs)
-
----
-
-## 🏗️ Architecture
-
-The project uses a **modular R6 class-based architecture** designed for scalability and maintainability:
-
-### Core Classes
-
-- **`AudioProcessor`**:
-  - Handles `.wav` file loading with `tuneR`
-  - Validates audio format and integrity
-  - Provides standardized audio objects
-
-- **`IndexCalculator`**:
-  - Computes all acoustic indices with individual error handling
-  - Uses helper functions for consistent channel processing
-  - Implements timing and output standardization
-  - Supports configurable parameters via JSON
-
-- **`ParallelRunner`**:
-  - Orchestrates parallel processing across multiple files
-  - Manages progress reporting and batch organization
-  - Handles file validation and missing file warnings
-  - Provides structured result aggregation
-
-- **`Logger`**:
-  - Provides structured logging with `log4r`
-  - Supports multiple log levels and destinations
-  - Enables component-specific log files
