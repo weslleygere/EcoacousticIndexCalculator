@@ -31,20 +31,23 @@ This project provides tools for **batch audio processing**, **comprehensive inde
 - ⚙️ **Flexible batch processing** via command-line:
 
   ```bash
-  Rscript main.R <folder> [index1 index2 ...] [--range <start> <end>]
+  Rscript main.R -d <directory> -i IDX1,IDX2,... -r START,END
   ```
 
 - 🧵 **Parallel computation** using `furrr` + `future` with automatic core detection
 
 - ⏱️ **Per-file and per-index runtime tracking**
 
-- 📝 **Structured logging** with `log4r` (separate logs for job orchestration, audio loading, and index calculation)
+- 📝 **Structured logging** with `log4r` (separate logs for pipeline, audio loading, and index calculation)
 
 - 💾 **Efficient output** in `.parquet` format via `arrow` (highly compressed and analytics-friendly)
 
 - 🎯 **Clean console output** with progress bars and informative status messages
 
-- 🛡️ **Robust error handling** with graceful degradation and detailed error logging
+- 🛡️ **Robust error handling**:
+  - Invalid argument syntax (indices, range, directory) stops execution with clear messages
+  - Invalid index names are detected before any calculation
+  - Invalid range or directory is reported with specific error messages
 
 - 📊 **Comprehensive metadata** including processing status, timing, and error details
 
@@ -57,7 +60,7 @@ IndexCalculator/
 ├── src/                     # R6 classes source code
 │   ├── AudioProcessor.R     # Audio loading and validation
 │   ├── IndexCalculator.R    # Comprehensive index computation methods
-│   ├── JobRunner.R          # Parallel processing orchestration
+│   ├── ParallelRunner.R     # Parallel processing orchestration
 │   └── Logger.R             # Structured logging utilities
 ├── main.R                   # Main CLI entry point
 ├── indices_parameters/      # Configurable computation parameters
@@ -68,7 +71,7 @@ IndexCalculator/
 │   ├── results/             # Output files (.parquet)
 │   └── log/                 # Structured log files
 │       ├── log_main.txt     # Main execution log
-│       ├── log_job_runner.txt   # Job orchestration log
+│       ├── log_parallel_runner.txt   # Parallel orchestration log
 │       ├── log_audio_load.txt   # Audio loading log
 │       └── log_index_calc.txt   # Index calculation log
 ├── renv/                    # Project-local R environment
@@ -106,10 +109,10 @@ IndexCalculator/
 
    ```bash
    # Windows PowerShell
-   Rscript main.R "data/audios/20240923" ACI NDSI --range 1 10
-   
+   Rscript main.R -d "data/audios/20240923" -i ACI,NDSI -r 1,10
+
    # Linux/macOS
-   Rscript main.R data/audios/20240923 ACI NDSI --range 1 10
+   Rscript main.R -d data/audios/20240923 -i ACI,NDSI -r 1,10
    ```
 
 5. **Check results**:
@@ -140,31 +143,31 @@ IndexCalculator/
 ### Process all indices (default behavior)
 
 ```bash
-Rscript main.R "data/audios/20240923"
+Rscript main.R -d "data/audios/20240923"
 ```
 
 ### Single index computation
 
 ```bash
-Rscript main.R "data/audios/20240923" ACI
+Rscript main.R -d "data/audios/20240923" -i ACI
 ```
 
 ### Multiple specific indices
 
 ```bash
-Rscript main.R "data/audios/20240923" ACI NDSI BIO SPECPROP MFCC
+Rscript main.R -d "data/audios/20240923" -i ACI,NDSI,BIO,SPECPROP,MFCC
 ```
 
 ### Process specific file range
 
 ```bash
-Rscript main.R "data/audios/20240923" --range 1 50
+Rscript main.R -d "data/audios/20240923" -r 1,50
 ```
 
 ### Complex combination
 
 ```bash
-Rscript main.R "data/audios/20240923" ENTROPY SPEC_ENT MFCC --range 10 100
+Rscript main.R -d "data/audios/20240923" -i ENTROPY,SPEC_ENT,MFCC -r 10,100
 ```
 
 ---
@@ -246,7 +249,7 @@ The project uses a **modular R6 class-based architecture** designed for scalabil
   - Implements timing and output standardization
   - Supports configurable parameters via JSON
 
-- **`JobRunner`**:
+- **`ParallelRunner`**:
   - Orchestrates parallel processing across multiple files
   - Manages progress reporting and batch organization
   - Handles file validation and missing file warnings
