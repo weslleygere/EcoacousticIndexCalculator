@@ -30,7 +30,6 @@ AudioProcessor <- R6::R6Class(
     #'   \item{filename}{The basename of the file path}
     #'   \item{wav}{The wave object (or NULL if failed)}
     get_audio = function() {
-      # 1) Check file extension
       ext <- tolower(tools::file_ext(private$filepath))
       if (ext != "wav") {
         private$logger$error(
@@ -42,7 +41,6 @@ AudioProcessor <- R6::R6Class(
         ))
       }
 
-      # 2) Attempt to read WAV
       private$wav <- tryCatch(
         tuneR::readWave(private$filepath),
         error = function(e) {
